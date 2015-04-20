@@ -18,7 +18,8 @@ Mathematics library
 + `dim(self)` - Dimensions of the matrix
 + `identity(n = 3)` - Static method, returns the identity matrix I<sub>n</sub>
 + `__mul__(self, const)` - Multiplies the entire matrix by a constant
-__Elementary Row Operations__
+
+__Elementary Row Operations:__
 + `row_swap(self, row1, row2)` - Swaps rows `row1` and `row2`
 + `row_mul(self, row, const)` - Multiplies `row` by a constant, `const`
 + `row_add(self, row1, row2, const)` - Adds two rows together in the fashion `row1 = row1 + const * row2`
