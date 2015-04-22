@@ -1,3 +1,4 @@
+from poly import Poly
 class Matrix:
         # Initializer
         def __init__(self, lst2D = [[0]]):
@@ -6,13 +7,26 @@ class Matrix:
                         if len(lst) != length:
                                 raise AttributeError("Cannot have ragged matrix")
                 self.contents = lst2D
+                if self.has_poly():
+                        self.poly_convert()
         
         # __str__
         def __str__(self):
                 r = "[ "
-                for s in self.contents:
-                        for t in s:
-                                r += str(t) + " "
+                def space(num):
+                        r = ""
+                        for n in range(num):
+                                r += " "
+                        return r
+                max_width = len(str(self.contents[0][0]))
+                for row in range(len(self.contents)):
+                        for col in range(len(self.contents[0])):
+                                if len(str(self.contents[row][col])) > max_width:
+                                        max_width = len(str(self.contents[row][col]))
+                for row in range(len(self.contents)):
+                        for col in range(len(self.contents[0])):
+                                cur_width = len(str(self.contents[row][col]))
+                                r += space((max_width - cur_width) // 2) + str(self.contents[row][col]) + space((max_width - cur_width) // 2 + 1)
                         r += "]\n[ "
                 return r[:-3]
         
@@ -26,7 +40,7 @@ class Matrix:
                 if self.dim() == (1, 1):
                         return self.contents[0][0]
                 elif self.dim() == (2, 2):
-                        total = 0
+                        total = Poly()
                         total += self.contents[0][0] * self.contents[1][1] - self.contents[1][0] * self.contents[0][1]
                         return total
                 else:
@@ -37,7 +51,7 @@ class Matrix:
                                         if r2 != r:
                                                 tmp_contents.append(self.contents[r2][1:])
                                 minors.append(Matrix(tmp_contents))
-                        total = 0
+                        total = Poly()
                         for r in range(len(self.contents)):
                                 total += minors[r].det() * self.contents[r][0] * (-1) ** r
                 return total
@@ -214,6 +228,23 @@ class Matrix:
                         for col in range(len(self.contents[0])):
                                 if type(self.contents[row][col]) == type(float()) and self.contents[row][col] == int(self.contents[row][col]):
                                         self.contents[row][col] = int(self.contents[row][col])
+        
+        # poly_convert
+        # Converts everything in the matrix to a polynomial
+        def poly_convert(self):
+                for row in range(len(self.contents)):
+                        for col in range(len(self.contents[0])):
+                                if type(self.contents[row][col]) != type(Poly()):
+                                        self.contents[row][col] = Poly(self.contents[row][col])
+        
+        # has_poly
+        # Checks if there is a polynomial in the matrix
+        def has_poly(self):
+                for row in range(len(self.contents)):
+                        for col in range(len(self.contents[0])):
+                                if type(self.contents[row][col]) == type(Poly()):
+                                        return True
+                return False
         
         ## Elementary Row Operations ##
         # row_swap
