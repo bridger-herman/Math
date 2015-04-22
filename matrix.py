@@ -243,8 +243,3 @@ class Matrix:
                         tmp_row[i] *= const
                 for i in range(len(self.contents[0])):
                         self.contents[row1][i] += tmp_row[i]
-        
-if __name__ == "__main__":
-        m = Matrix([[1, 2], [3, 4]])      
-        m.inverse()
-        print(m)
