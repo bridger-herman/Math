@@ -7,8 +7,6 @@ class Matrix:
                         if len(lst) != length:
                                 raise AttributeError("Cannot have ragged matrix")
                 self.contents = lst2D
-                if self.has_poly():
-                        self.poly_convert()
         
         # __str__
         def __str__(self):
@@ -70,6 +68,14 @@ class Matrix:
                 # Take RREF of this... LOL
                 # Saving this comment because I thought I couldn't do it... ^^^
         
+        # eigenvalues
+        # Finds the eigenvalues of a matrix
+        def eigenvalues(self):
+                x = Matrix.identity(self.dim()[0]).poly_convert() * Poly({1:1})
+                self = self.poly_convert()
+                mat = self - x
+                d = mat.det()
+                return d.roots()
         # rref
         # Takes the Reduced Row Echelon form of a matrix
         def rref(self):
@@ -221,6 +227,19 @@ class Matrix:
                         new_contents.append(tmp_col)
                 return Matrix(new_contents)
         
+        # __sub__
+        # Subtracts a matrix `other` from `self`
+        def __sub__(self, other):
+                if self.dim() != other.dim():
+                        raise AttributeError("Cannot subtract matrices of different sizes")
+                new_contents = []
+                for row in range(len(self.contents)):
+                        tmp_col = []
+                        for col in range(len(self.contents[0])):
+                                tmp_col.append(self.contents[row][col] - other.contents[row][col])
+                        new_contents.append(tmp_col)
+                return Matrix(new_contents)
+        
         # int_convert
         # Converts things in the matrix back to integers, if possible
         def int_convert(self):
@@ -232,10 +251,16 @@ class Matrix:
         # poly_convert
         # Converts everything in the matrix to a polynomial
         def poly_convert(self):
+                tmp_contents = []
                 for row in range(len(self.contents)):
+                        tmp_row = []
                         for col in range(len(self.contents[0])):
                                 if type(self.contents[row][col]) != type(Poly()):
-                                        self.contents[row][col] = Poly(self.contents[row][col])
+                                        tmp_row.append(Poly(self.contents[row][col]))
+                                else:
+                                        tmp_row.append(self.contents[row][col])
+                        tmp_contents.append(tmp_row)
+                return Matrix(tmp_contents)
         
         # has_poly
         # Checks if there is a polynomial in the matrix
