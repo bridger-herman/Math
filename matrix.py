@@ -1,11 +1,16 @@
 from poly import Poly
 class Matrix:
         # Initializer
-        def __init__(self, lst2D = [[0]]):
+        def __init__(self, lst2D = [[Poly(0)]]):
                 length = len(lst2D[0])
                 for lst in lst2D:
                         if len(lst) != length:
                                 raise AttributeError("Cannot have ragged matrix")
+                # Convert everything to a polynomial
+                for r in range(len(lst2D)):
+                        for c in range(len(lst2D[0])):
+                                if type(lst2D[r][c]) != type(Poly()):
+                                        lst2D[r][c] = Poly(lst2D[r][c])
                 self.contents = lst2D
         
         # __str__
@@ -27,6 +32,10 @@ class Matrix:
                                 r += space((max_width - cur_width) // 2) + str(self.contents[row][col]) + space((max_width - cur_width) // 2 + 1)
                         r += "]\n[ "
                 return r[:-3]
+        
+        # __repr__
+        def __repr__(self):
+                return self.__str__()
         
         # det
         # Takes the determinant of a matrix
@@ -67,15 +76,56 @@ class Matrix:
                         self.contents[row] = self.contents[row][len(self.contents):]
                 # Take RREF of this... LOL
                 # Saving this comment because I thought I couldn't do it... ^^^
+                return self
         
         # eigenvalues
         # Finds the eigenvalues of a matrix
         def eigenvalues(self):
-                x = Matrix.identity(self.dim()[0]).poly_convert() * Poly({1:1})
-                self = self.poly_convert()
+                # Make the polynomial matrix
+                #       [x - a   b  ]
+                #       [  c   x - d]
+                # from this matrix:
+                #       [ a  b ]
+                #       [ c  d ]
+                x = Matrix.identity(self.dim()[0]) * Poly({1:1})
                 mat = self - x
                 d = mat.det()
                 return d.roots()
+        
+        # eigenvectors
+        # Finds the eigenvectors of a matrix
+        def eigenvectors(self, equal_matrix = None):
+                # Make the polynomial matrix
+                #       [x - a   b  ]
+                #       [  c   x - d]
+                # from this matrix:
+                #       [ a  b ]
+                #       [ c  d ]
+                x = Matrix.identity(self.dim()[0]) * Poly({1:1})
+                mat = self - x
+                # Find the eigenvalues of the matrix
+                values = mat.det().roots()
+                evaluated = []
+                for value in values:
+                        tmp_contents = []
+                        for row in range(len(self.contents)):
+                                tmp_row = []
+                                for col in range(len(self.contents[0])):
+                                        tmp_row.append(mat.contents[row][col].evaluate(value))
+                                tmp_contents.append(tmp_row)
+                        evaluated.append(Matrix(tmp_contents))
+                vector_mats = []
+                for m in evaluated:
+                        if not equal_matrix:
+                                o = Poly(0)
+                                m.augment(Matrix([[o],[o]]))
+                        else:
+                                m.augment(equal_matrix)
+                        m.rref()
+                        vector_mats.append(m)
+                # TODO improve upon this after equations
+                return vector_mats
+        
         # rref
         # Takes the Reduced Row Echelon form of a matrix
         def rref(self):
@@ -86,19 +136,19 @@ class Matrix:
                         col = 0
                         done = False
                         while not done and not self.is_rref():
-                                sub_row = 0
-                                while sub_row < row:
-                                        # Subtracts multiple of the pivot column from sub_row
-                                        if self.contents[sub_row][col] != 0:
-                                                self.row_add(sub_row, row, -self.contents[sub_row][col])
-                                        sub_row += 1
+                                tmp_row = 0
+                                while tmp_row < row:
+                                        # Subtracts multiple of the pivot column from tmp_row
+                                        if self.contents[tmp_row][col] != 0:
+                                                self.row_sub(tmp_row, row, self.contents[tmp_row][col])
+                                        tmp_row += 1
                                 if col >= len(self.contents[0]) - 1 and row >= len(self.contents) - 1:
                                         done = True
                                 if row < len(self.contents) - 1:
                                         row += 1
                                 if col < len(self.contents[0]) - 1:
                                         col += 1
-                self.int_convert()
+                return self
         
         # is_rref
         # Determines if a matrix is in Reduced Row Echelon Form
@@ -138,14 +188,14 @@ class Matrix:
                                 done = False
                                 while not done and not self.is_ref():
                                         # Divide everything in current row by item at (0, 0)
-                                        if self.contents[row][col] != 0 and self.contents[row][col] != 0:
-                                                self.row_mul(row, 1 / self.contents[row][col])
+                                        if self.contents[row][col] != 0:
+                                                self.row_div(row, self.contents[row][col])
                                         # Check to see if everything in the current column is zero
-                                        sub_row = row + 1
-                                        while sub_row < len(self.contents):
-                                                if self.contents[sub_row][col] != 0:
-                                                        self.row_add(sub_row, row, -self.contents[sub_row][col])
-                                                sub_row += 1
+                                        tmp_row = row + 1
+                                        while tmp_row < len(self.contents):
+                                                if self.contents[tmp_row][col] != 0:
+                                                        self.row_sub(tmp_row, row, self.contents[tmp_row][col])
+                                                tmp_row += 1
                                         if col >= len(self.contents[0]) - 1 and row >= len(self.contents) - 1:
                                                 done = True
                                         if row < len(self.contents) - 1:
@@ -157,15 +207,16 @@ class Matrix:
                                 while col < len(self.contents[0]):
                                         row = 0
                                         while row < len(self.contents):
-                                                sub_row = 0
-                                                while sub_row < len(self.contents):
-                                                        # Swap row and sub_row if row has a nonzero element
-                                                        if self.contents[row][col]:
-                                                                self.row_swap(row, sub_row)
-                                                        sub_row += 1
+                                                tmp_row = 0
+                                                while tmp_row < len(self.contents):
+                                                        # Swap row and tmp_row if row has a nonzero element
+                                                        if self.contents[row][col] != 0:
+                                                                self.row_swap(row, tmp_row)
+                                                        tmp_row += 1
                                                 row += 1
                                         col +=1
-                        self.int_convert()
+                return self
+                
         # is_ref
         # Checks if a matrix is in Row Echelon Form
         def is_ref(self):
@@ -179,11 +230,16 @@ class Matrix:
                                 num = self.contents[row][col]
                                 if num != 0 and num != 1:
                                         ref = False
-                                elif num == 1 and (len(pivots) == 0 or col > pivots[-1]):
-                                        pivots.append(col)
-                                        col_flag = True
-                                elif num == 1 and (len(pivots) == 0 or col < pivots[-1]):
-                                        ref = False
+                                elif num == 1:
+                                        if len(pivots) != 0:
+                                                if col > pivots[-1]:
+                                                        pivots.append(col)
+                                                        col_flag = True
+                                                else:
+                                                        ref = False
+                                        else:
+                                                pivots.append(col)
+                                                col_flag = True
                                 col += 1
                         row += 1
                 return ref
@@ -195,9 +251,10 @@ class Matrix:
                         raise AttributeError("Cannot augment matrices with a different number of rows")
                 for i in range(len(self.contents)):
                         self.contents[i] += other.contents[i]
+                return self
         
         # dim
-        # Gets the dimensions of the matrix
+        # Gets the dimensions of the matrix (rows, cols)
         def dim(self):
                 return (len(self.contents), len(self.contents[0]))
         
@@ -210,9 +267,9 @@ class Matrix:
                         tmp_row = []
                         for c in range(n):
                                 if r == c:
-                                        tmp_row.append(1)
+                                        tmp_row.append(Poly(1))
                                 else:
-                                        tmp_row.append(0)
+                                        tmp_row.append(Poly(0))
                         contents.append(tmp_row)
                 return Matrix(contents)
         
@@ -247,6 +304,7 @@ class Matrix:
                         for col in range(len(self.contents[0])):
                                 if type(self.contents[row][col]) == type(float()) and self.contents[row][col] == int(self.contents[row][col]):
                                         self.contents[row][col] = int(self.contents[row][col])
+                return self
         
         # poly_convert
         # Converts everything in the matrix to a polynomial
@@ -278,6 +336,7 @@ class Matrix:
                 tmp_row = list(self.contents[row1])
                 self.contents[row1] = list(self.contents[row2])
                 self.contents[row2] = tmp_row
+                return self
         
         # row_mul
         # Multiplies a row in a matrix by a constant
@@ -286,11 +345,21 @@ class Matrix:
                         raise ValueError("Constant cannot be zero")
                 for i in range(len(self.contents[0])):
                         self.contents[row][i] *= const
+                return self
+        
+        # row_div
+        # Divides a row in a matrix by a constant
+        def row_div(self, row, const):
+                if const == 0:
+                        raise ZeroDivisionError
+                for i in range(len(self.contents[0])):
+                        self.contents[row][i] /= const
+                return self
         
         # row_add
-        # adds two rows together (row1 = row1 + const * row2)
+        # Adds two rows in a matrix together (row1 = row1 + const * row2)
         def row_add(self, row1, row2, const):
-                if const == None:
+                if not const:
                         const = 1
                 elif const == 0:
                         raise ValueError("Constant cannot be zero")
@@ -299,3 +368,18 @@ class Matrix:
                         tmp_row[i] *= const
                 for i in range(len(self.contents[0])):
                         self.contents[row1][i] += tmp_row[i]
+                return self
+                
+        # row_sub
+        # Subtracts two rows in a matrix (row1 = row1 - const * row2
+        def row_sub(self, row1, row2, const):
+                if not const:
+                        const = 1
+                elif const == 0:
+                        raise ValueError("Constant cannot be zero")
+                tmp_row = list(self.contents[row2])
+                for i in range(len(self.contents[0])):
+                        tmp_row[i] *= const
+                for i in range(len(self.contents[0])):
+                        self.contents[row1][i] -= tmp_row[i]
+                return self

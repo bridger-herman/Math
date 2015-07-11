@@ -3,12 +3,17 @@ class Poly:
         def __init__(self, terms = {}, var = "x"):
                 # Dictionary with degrees paired with their coefficients
                 self.terms = {}
-                if type(terms) == type({}):
+                # If it's already a dictionary
+                if isinstance(terms, dict):
                         self.terms = terms
-                elif type(terms) == type(Poly()):
+                # If it's a Poly already
+                elif isinstance(terms, Poly):
                         self = terms
-                else:
+                # If it's a number
+                elif isinstance(terms, int):
                         self.terms[0] = terms
+                else:
+                        self.terms[0] = 0
                 # Variable name
                 self.var = var
         
@@ -22,6 +27,11 @@ class Poly:
                         if n in self.terms:
                                 # Append the coefficient Cx^n
                                 c = self.terms[n]
+                                # Decide whether or not to truncate a decimal
+                                if isinstance(c, float) and c == int(c):
+                                        trunc = True
+                                else:
+                                        trunc = False
                                 # + n is max (need to display sign out front)
                                 if n == max(self.terms):
                                         if c < 0:
@@ -30,16 +40,28 @@ class Poly:
                                 # + C is 1: display only the term, not the 1, unless n == 0
                                 if n == 0:
                                         if c == 0 or c > 0:
-                                                r += str(c)
+                                                if trunc:
+                                                        r += str(int(c))
+                                                else:
+                                                        r += str(c)
                                         elif c < 0:
-                                                r += str(abs(c))
+                                                if trunc:
+                                                        r += str(abs(int(c)))
+                                                else:
+                                                        r += str(abs(c))
                                 else:
                                         if abs(c) != 1 and c != 0:
                                                 # + C < 0 (and n !max): need to take abs(C)
                                                 if c < 0 and n < max(self.terms):
-                                                        r += str(abs(c))
+                                                        if trunc:
+                                                                r += str(absint((c)))
+                                                        else:
+                                                                r += str(abs(c))
                                                 else:
-                                                        r += str(c)
+                                                        if trunc:
+                                                                r += str(int(c))
+                                                        else:
+                                                                r += str(c)
                                 # Append the variable and the power
                                 if self.terms[n] != 0:
                                         if n != 0 and n != 1:
@@ -54,6 +76,10 @@ class Poly:
                                                 r += " + "
                         n -= 1
                 return r
+        
+        # __repr__
+        def __repr__(self):
+                return self.__str__()
         
         # __add__
         # Adds 2 polynomials together
@@ -100,6 +126,7 @@ class Poly:
                 tmp1 = {}
                 tmp2 = {}
                 for n in self.terms:
+                        # TODO isinstance()
                         if type(other) == type(Poly()):
                                 for m in other.terms:
                                         if n + m not in tmp1:
@@ -117,6 +144,16 @@ class Poly:
                         else:
                                 tmp1[n] = self.terms[n] * other 
                 return Poly(tmp1, self.var) + Poly(tmp2)
+        
+        # __truediv__
+        # Temporary fix for ref
+        # TODO actually implement this
+        def __truediv__(self, other):
+                if isinstance(other, Poly):
+                        if max(self.terms) == 0 and max(other.terms) == 0:
+                                return Poly({0:self.terms[0] / other.terms[0]})
+                elif isinstance(other, int) or isinstance(other, float):
+                        return Poly({0:self.terms[0] / other})
         
         # __mod__
         # Finds the remainder (by synthetic division) of a polynomial with a root
@@ -138,6 +175,38 @@ class Poly:
                         remainders.append(middle[i] + coeffs[i])
                         i += 1
                 return(remainders[-1])
+        
+        # __neg__
+        # Unary negation
+        def __neg__(self):
+                tmp_terms = dict(self.terms)
+                for n in tmp_terms:
+                        tmp_terms[n] = -tmp_terms[n]
+                return Poly(tmp_terms)
+        
+        # __eq__
+        # Equal to
+        def __eq__(self, other):
+                flag = True
+                i = 0
+                if isinstance(other, Poly):
+                        while i < max(self.terms) and not flag:
+                                if i in self.terms:
+                                        if i not in other.terms:
+                                                flag = False
+                                        else:
+                                                if self.terms[i] != other.terms[i]:
+                                                        flag = False
+                                i += 1
+                elif isinstance(other, int) or isinstance(other, float):
+                        if max(self.terms) != 0 or self.terms[0] != other:
+                                flag = False
+                return flag
+        
+        # __ne__
+        # Not equal to
+        def __ne__(self, other):
+                return not self == other
         
         # evauluate
         # Evaluates a polynomial at a given value
